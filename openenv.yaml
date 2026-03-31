@@ -4,4 +4,6 @@ type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
+version: "1.0.0"
+description: "AI agent environment for Python code review across syntax, logic, and security bug detection"
 

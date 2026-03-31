@@ -34,6 +34,12 @@ def list_tasks():
                     "bug_type": "string - syntax | logic | security | none",
                     "line_number": "int - line with the bug, -1 if unknown",
                     "confidence": "float - your confidence 0.0 to 1.0"
+                },
+                "example_action": {
+                    "review": "Line 1 is missing a colon after the function definition. This is a syntax error.",
+                    "bug_type": "syntax",
+                    "line_number": 1,
+                    "confidence": 0.95
                 }
             },
             {
@@ -45,6 +51,12 @@ def list_tasks():
                     "bug_type": "string - syntax | logic | security | none",
                     "line_number": "int - line with the bug, -1 if unknown",
                     "confidence": "float - your confidence 0.0 to 1.0"
+                },
+                "example_action": {
+                    "review": "Line 5 has an index error: it should be max_val = numbers[i], not numbers[i - 1]. This is a logic bug.",
+                    "bug_type": "logic",
+                    "line_number": 5,
+                    "confidence": 0.95
                 }
             },
             {
@@ -56,9 +68,29 @@ def list_tasks():
                     "bug_type": "string - syntax | logic | security | none",
                     "line_number": "int - line with the bug, -1 if unknown",
                     "confidence": "float - your confidence 0.0 to 1.0"
+                },
+                "example_action": {
+                    "review": "Line 6 has a SQL injection vulnerability because the username is concatenated directly into the query without parameterized statements.",
+                    "bug_type": "security",
+                    "line_number": 6,
+                    "confidence": 0.95
                 }
             }
         ]
+    }
+
+@app.get("/info")
+def info():
+    """
+    Returns information about the Code Review Environment.
+    Returns: environment name, version, description, number of tasks, and supported difficulty levels
+    """
+    return {
+        "name": "code_review_env",
+        "version": "1.0.0",
+        "description": "AI agent environment for Python code review across syntax, logic, and security bug detection",
+        "num_tasks": 3,
+        "difficulty_levels": ["easy", "medium", "hard"]
     }
 
 @app.get("/grader")

@@ -30,6 +30,7 @@ class ReviewObservation(Observation):
     attempt_number: int            # how many steps taken so far
     previous_feedback: str         # feedback from last step, empty on reset
     done: bool                     # whether episode is complete
+    hint: Optional[str] = None     # optional hint for the agent
 
 
 class ReviewState(State):
@@ -42,3 +43,4 @@ class ReviewState(State):
     step_count: int = 0
     task_episode_id: str = ""
     cumulative_reward: float = 0.0
+    total_snippets: int = 4
