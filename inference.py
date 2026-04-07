@@ -1,18 +1,47 @@
+#!/usr/bin/env python3
+"""Code Review Environment Baseline Evaluation.
+
+Prints structured output format for programmatic consumption:
+[START] task=<task_id>
+[STEP] step=1 reward=<score>
+[END] task=<task_id> score=<score> steps=1
+
+This script evaluates baseline code review performance using an LLM.
 """
-Baseline inference script for code_review_env.
-Uses OpenAI API to run an agent against all 3 tasks.
-"""
-import os
+
+from __future__ import annotations
+
 import json
+import os
 import requests
+from typing import Dict
+
 from openai import OpenAI
 
-BASE_URL = os.getenv("ENV_URL", "http://localhost:8000")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "dummy-key"))
 
-TASKS = ["easy", "medium", "hard"]
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+MODEL = "gpt-4o-mini"
+
+# Initialize OpenAI client
+client = OpenAI(api_key=API_KEY)
+
+# List of task IDs to evaluate
+TASKS = os.getenv("TASKS", "task_1,task_2,task_3").split(",")
+
+# ---------------------------------------------------------------------------
+# Main Task Runner
+# ---------------------------------------------------------------------------
+
 
 def run_task(task_id: str) -> float:
+    """Run a single code review task and return the score."""
+    print(f"[START] task={task_id}", flush=True)
+    
     # Reset environment
     reset_resp = requests.post(f"{BASE_URL}/reset", json={"task_id": task_id})
     obs = reset_resp.json()["observation"]
@@ -38,7 +67,7 @@ Respond ONLY with valid JSON, no markdown:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
         )
@@ -46,34 +75,44 @@ Respond ONLY with valid JSON, no markdown:
         raw = raw.replace("```json", "").replace("```", "").strip()
         action = json.loads(raw)
     except Exception as e:
-        print(f"LLM error for {task_id}: {e}")
+        print(f"LLM error for {task_id}: {e}", flush=True)
         action = {"review": "unknown", "bug_type": "none", "line_number": -1, "confidence": 0.0}
 
     # Step
     step_resp = requests.post(f"{BASE_URL}/step", json={"action": action})
     step_data = step_resp.json()
-    
+    feedback = step_data["observation"].get("previous_feedback", "")
+
     # Get grader score
     grader_resp = requests.get(f"{BASE_URL}/grader?task_id={task_id}&episode_id=baseline")
     score = grader_resp.json().get("score", 0.0)
+
+    print(f"[STEP] step=1 reward={score}", flush=True)
+    print(f"[END] task={task_id} score={score} steps=1", flush=True)
     
-    print(f"Task: {task_id} | Score: {score} | Feedback: {step_data['observation'].get('previous_feedback', '')}")
     return score
+
+
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
+
 
 def main():
     scores = {}
     for task_id in TASKS:
         scores[task_id] = run_task(task_id)
     
-    average = sum(scores.values()) / len(scores)
-    scores["average"] = round(average, 4)
+    average = round(sum(scores.values()) / len(scores), 4)
+    scores["average"] = average
     
-    print(f"\nBaseline Results: {json.dumps(scores, indent=2)}")
+    print(f"\nBaseline Results: {json.dumps(scores, indent=2)}", flush=True)
     
     with open("baseline_scores.json", "w") as f:
         json.dump(scores, f, indent=2)
     
     return scores
+
 
 if __name__ == "__main__":
     main()
