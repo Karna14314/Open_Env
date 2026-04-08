@@ -13,12 +13,18 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy coding_env package
-COPY envs/coding_env/ ./envs/coding_env/
+# Copy repository content.
+# In monorepo builds this includes `envs/coding_env/`.
+# In Hugging Face Space builds this is typically the env root itself.
+COPY . /app
 
-# Install openenv-core first from PyPI, then coding_env
+# Install openenv-core first, then install coding_env from whichever layout exists.
 RUN pip install --no-cache-dir "openenv-core[core]>=0.2.2" && \
-    pip install --no-cache-dir ./envs/coding_env/
+    if [ -f /app/envs/coding_env/pyproject.toml ]; then \
+        pip install --no-cache-dir /app/envs/coding_env/; \
+    else \
+        pip install --no-cache-dir /app; \
+    fi
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1

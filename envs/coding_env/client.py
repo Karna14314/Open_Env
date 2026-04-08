@@ -27,6 +27,13 @@ class CodingEnv(EnvClient[CodeAction, CodeObservation, CodeState]):
     def _step_payload(self, action: CodeAction) -> dict:
         # Shape expected by the server's /step endpoint under "action"
         return {
+            "review": action.review,
+            "file_path": action.file_path,
+            "issue_type": action.issue_type,
+            "severity": action.severity,
+            "bug_type": action.bug_type,
+            "line_number": action.line_number,
+            "confidence": action.confidence,
             "code": action.code,
         }
 
@@ -53,4 +60,7 @@ class CodingEnv(EnvClient[CodeAction, CodeObservation, CodeState]):
             episode_id=payload.get("episode_id"),
             step_count=payload.get("step_count", 0),
             last_exit_code=payload.get("last_exit_code", 0),
+            task_id=payload.get("task_id", ""),
+            difficulty=payload.get("difficulty", ""),
+            last_score=float(payload.get("last_score", 0.0)),
         )

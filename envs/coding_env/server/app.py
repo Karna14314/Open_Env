@@ -21,13 +21,37 @@ Usage:
     python -m envs.coding_env.server.app
 """
 
-from coding_env.models import CodeAction, CodeObservation
-from coding_env.server.python_codeact_env import PythonCodeActEnv
+from fastapi import Query
+
+try:
+    from coding_env.models import CodeAction, CodeObservation
+    from coding_env.server.python_codeact_env import PythonCodeActEnv
+    from coding_env.server.task_bank import get_episode_score, list_tasks
+except ImportError:
+    from ..models import CodeAction, CodeObservation
+    from .python_codeact_env import PythonCodeActEnv
+    from .task_bank import get_episode_score, list_tasks
 from openenv.core.env_server import create_app
 
 # Create the app with web interface and README integration
 # Pass the class (factory) instead of an instance for WebSocket session support
 app = create_app(PythonCodeActEnv, CodeAction, CodeObservation, env_name="coding_env")
+
+
+@app.get("/tasks", tags=["Environment Info"])
+def tasks():
+    """Return available benchmark tasks and their difficulty."""
+    return {"tasks": list_tasks()}
+
+
+@app.get("/grader", tags=["Environment Info"])
+def grader(
+    task_id: str = Query(..., description="Task identifier"),
+    episode_id: str = Query(..., description="Episode identifier"),
+):
+    """Return normalized score in [0.0, 1.0] for task/episode."""
+    score = get_episode_score(task_id, episode_id)
+    return {"task_id": task_id, "episode_id": episode_id, "score": float(score)}
 
 
 if __name__ == "__main__":

@@ -13,7 +13,9 @@ tags:
 
 # Coding Environment
 
-A Python code execution environment that runs arbitrary Python code and returns results. Perfect for testing code execution infrastructure and demonstrating environment usage patterns.
+A real-world **PR triage and code review** environment with three graded tasks
+(easy/medium/hard). Each episode presents pull request metadata and a unified
+diff, then asks the agent to submit a structured review.
 
 ## Quick Start
 
@@ -77,20 +79,53 @@ docker build -t coding-env:latest -f envs/coding_env/server/Dockerfile .
 ## Environment Details
 
 ### Action
-**CodeAction**: Contains a single field
-- `code` (str) - The Python code to execute
+**CodeAction** fields:
+- `review` (str) - Human-readable review summary
+- `file_path` (str) - Changed file being flagged
+- `issue_type` (str) - `logic|security|performance|maintainability`
+- `severity` (str) - `low|medium|high|critical`
+- `bug_type` (str) - One of `syntax | logic | security | none`
+- `line_number` (int) - Suspected faulty line
+- `confidence` (float) - Confidence score in `[0.0, 1.0]`
 
 ### Observation
-**CodeObservation**: Contains the execution results
-- `stdout` (str) - Standard output from code execution
-- `stderr` (str) - Standard error from code execution
-- `exit_code` (int) - Exit code (0 for success, non-zero for errors)
+**CodeObservation** fields:
+- `task_id` (str) - Current task id
+- `difficulty` (str) - Task difficulty (`easy|medium|hard`)
+- `task_description` (str) - Review instructions
+- `code_snippet` (str) - PR context + unified diff
+- `pr_title` (str) - Pull request title
+- `pr_description` (str) - Pull request summary
+- `changed_files` (str) - Changed file list
+- `previous_feedback` (str) - Grader feedback from latest step
+- `reward` (float) - Normalized score contribution `[0.0, 1.0]`
+- `done` (bool) - Episode termination flag
 
 ### State
 **CodeState**: Tracks execution state
 - `episode_id` (str) - Unique identifier for the episode
 - `step_count` (int) - Number of steps taken
-- `last_exit_code` (int) - Exit code from the last execution
+- `task_id` (str) - Active task id
+- `difficulty` (str) - Active task difficulty
+- `last_score` (float) - Last normalized score
+
+## Built-in Tasks and Graders
+
+The server exposes:
+- `GET /tasks` to list all benchmark tasks.
+- `GET /grader?task_id=<id>&episode_id=<id>` to read final normalized score.
+
+Shipped tasks:
+- `task_easy_1` (logic)
+- `task_medium_1` (security)
+- `task_hard_1` (logic/performance-concurrency)
+
+Rewards are strict `(0, 1)` with partial progress:
+- file path localization
+- issue type / bug type correctness
+- severity calibration
+- line-level precision
+- evidence quality in review text
 
 ## Advanced Usage
 
